@@ -9,3 +9,15 @@ variable "instance_type" {
   type        = string
   default     = "t3.micro"
 }
+
+variable "bucket_name" {
+  description = "s3 Bucket name"
+  type        = string
+  default     = "dhanush-tfstate-us-east-2"
+}
+
+variable "region" {
+  description = "region name"
+  type        = string
+  default     = "us-east-2"
+}
