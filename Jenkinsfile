@@ -27,14 +27,12 @@ pipeline {
         }
 
         stage('Approval') {
-            when { branch 'main' }
             steps {
                 input message: 'Apply Terraform changes?', ok: 'Apply'
             }
         }
 
         stage('Apply') {
-            when { branch 'main' }
             steps {
                 sh 'terraform apply -input=false -auto-approve tfplan'
             }
