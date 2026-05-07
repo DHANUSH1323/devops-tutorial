@@ -1,0 +1,15 @@
+*.tfstate
+*tfstate.backup
+.terraform/
+.terraform.lock.hcl
+.venv/
+*.pyc
+__pycache__/
+*.log
+*.tfvars
+*.tfvars.json
+*.tfvars.yaml
+*.tfvars.yml
+*.tfvars.tfvars
+*.tfvars.tfvars.json
+*.tfvars.tfvars.yaml        
