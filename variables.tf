@@ -21,3 +21,9 @@ variable "region" {
   type        = string
   default     = "us-east-2"
 }
+
+variable "image_tag" {
+  description = "Docker image tag to deploy (e.g. commit SHA from CI). Defaults to 'latest'."
+  type        = string
+  default     = "latest"
+}
