@@ -42,7 +42,12 @@ resource "aws_instance" "app_server" {
       | docker login --username AWS --password-stdin ${local.ecr_registry}
 
     docker pull ${local.image_full}
-    docker run -d --restart=always --name app -p 8000:8000 ${local.image_full}
+    docker run -d --restart=always --name app \
+      --log-driver=awslogs \
+      --log-opt awslogs-region=${var.region} \
+      --log-opt awslogs-group=${aws_cloudwatch_log_group.app.name} \
+      --log-opt awslogs-stream=app \
+      -p 8000:8000 ${local.image_full}
   EOF
 
   tags = {

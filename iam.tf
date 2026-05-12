@@ -19,3 +19,8 @@ resource "aws_iam_instance_profile" "ec2_app" {
   name = "ec2-app-profile"
   role = aws_iam_role.ec2_app.name
 }
+
+resource "aws_iam_role_policy_attachment" "cw_agent" {
+  role       = aws_iam_role.ec2_app.name
+  policy_arn = "arn:aws:iam::aws:policy/CloudWatchAgentServerPolicy"
+}
