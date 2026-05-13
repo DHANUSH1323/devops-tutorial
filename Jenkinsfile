@@ -5,6 +5,8 @@ pipeline {
         AWS_ACCESS_KEY_ID     = credentials('AWS_ACCESS_KEY_ID')
         AWS_SECRET_ACCESS_KEY = credentials('AWS_SECRET_ACCESS_KEY')
         AWS_DEFAULT_REGION    = 'us-east-2'
+        SONAR_TOKEN           = credentials('SONAR_TOKEN')
+        SONAR_HOST_URL        = 'http://sonarqube:9000'
         IMAGE_TAG             = "${env.BUILD_NUMBER}"
     }
 
@@ -18,6 +20,19 @@ pipeline {
             post {
                 always {
                     junit 'app/target/surefire-reports/*.xml'
+                }
+            }
+        }
+
+        stage('SonarQube Analysis') {
+            steps {
+                dir('app') {
+                    sh '''
+                        mvn -B sonar:sonar \
+                          -Dsonar.projectKey=devops-app \
+                          -Dsonar.host.url=${SONAR_HOST_URL} \
+                          -Dsonar.login=${SONAR_TOKEN}
+                    '''
                 }
             }
         }
