@@ -75,9 +75,13 @@ pipeline {
                       | docker login --username AWS --password-stdin "$ECR_HOST"
                     docker tag devops-app:${IMAGE_TAG} "$ECR_URL:${IMAGE_TAG}"
                     docker tag devops-app:${IMAGE_TAG} "$ECR_URL:latest"
-                    docker push "$ECR_URL:${IMAGE_TAG}"
-                    docker push "$ECR_URL:latest"
                 '''
+                retry(5) {
+                    sh '''
+                        docker push "$ECR_URL:${IMAGE_TAG}"
+                        docker push "$ECR_URL:latest"
+                    '''
+                }
             }
         }
 
