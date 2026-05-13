@@ -37,6 +37,24 @@ pipeline {
             }
         }
 
+        stage('Terraform Init') {
+            steps {
+                sh 'terraform init -input=false'
+            }
+        }
+
+        stage('Terraform Validate') {
+            steps {
+                sh 'terraform validate'
+            }
+        }
+
+        stage('Ensure ECR Repo Exists') {
+            steps {
+                sh 'terraform apply -input=false -auto-approve -target=aws_ecr_repository.app'
+            }
+        }
+
         stage('Docker Build') {
             steps {
                 dir('app') {
@@ -60,18 +78,6 @@ pipeline {
                     docker push "$ECR_URL:${IMAGE_TAG}"
                     docker push "$ECR_URL:latest"
                 '''
-            }
-        }
-
-        stage('Terraform Init') {
-            steps {
-                sh 'terraform init -input=false'
-            }
-        }
-
-        stage('Terraform Validate') {
-            steps {
-                sh 'terraform validate'
             }
         }
 
