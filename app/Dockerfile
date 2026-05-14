@@ -1,15 +1,13 @@
-#stage 1: build the application
-FROM maven:3.8.4-openjdk-17-slim AS builder
-WORKDIR /app
-COPY pom.xml .
-COPY src ./src
-RUN mvn clean package -DskipTests
+FROM python:3.12-slim
 
-
-#Step2: runtime
-FROM eclipse-temurin:17-jre
 WORKDIR /app
-COPY --from=builder /app/target/devops-app.jar ./app.jar
+
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+COPY app.py .
+
 EXPOSE 8000
 ENV PORT=8000
-ENTRYPOINT ["java", "-jar", "/app/app.jar"]
+
+CMD ["python", "app.py"]

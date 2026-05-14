@@ -11,15 +11,35 @@ pipeline {
     }
 
     stages {
-        stage('Build & Test') {
+        stage('Lint') {
             steps {
                 dir('app') {
-                    sh 'mvn -B clean package'
+                    sh '''
+                        docker run --rm \
+                          --volumes-from jenkins \
+                          -w "$PWD" \
+                          python:3.12-slim \
+                          bash -lc "pip install --quiet ruff==0.6.9 && ruff check ."
+                    '''
+                }
+            }
+        }
+
+        stage('Unit Tests') {
+            steps {
+                dir('app') {
+                    sh '''
+                        docker run --rm \
+                          --volumes-from jenkins \
+                          -w "$PWD" \
+                          python:3.12-slim \
+                          bash -lc "pip install --quiet -r requirements-dev.txt && pytest --junitxml=test-results.xml --cov=. --cov-report=xml"
+                    '''
                 }
             }
             post {
                 always {
-                    junit 'app/target/surefire-reports/*.xml'
+                    junit 'app/test-results.xml'
                 }
             }
         }
@@ -27,12 +47,25 @@ pipeline {
         stage('SonarQube Analysis') {
             steps {
                 dir('app') {
-                    sh '''
-                        mvn -B sonar:sonar \
-                          -Dsonar.projectKey=devops-app \
-                          -Dsonar.host.url=${SONAR_HOST_URL} \
-                          -Dsonar.login=${SONAR_TOKEN}
-                    '''
+                    withSonarQubeEnv('SonarQube') {
+                        sh '''
+                            docker run --rm \
+                              --volumes-from jenkins \
+                              --network=devops-net \
+                              -w "$PWD" \
+                              -e SONAR_HOST_URL="$SONAR_HOST_URL" \
+                              -e SONAR_TOKEN="$SONAR_AUTH_TOKEN" \
+                              sonarsource/sonar-scanner-cli
+                        '''
+                    }
+                }
+            }
+        }
+
+        stage('Quality Gate') {
+            steps {
+                timeout(time: 3, unit: 'MINUTES') {
+                    waitForQualityGate abortPipeline: true
                 }
             }
         }
@@ -60,6 +93,20 @@ pipeline {
                 dir('app') {
                     sh 'docker build --platform=linux/amd64 -t devops-app:${IMAGE_TAG} .'
                 }
+            }
+        }
+
+        stage('Image Scan') {
+            steps {
+                sh '''
+                    docker run --rm \
+                      -v /var/run/docker.sock:/var/run/docker.sock \
+                      aquasec/trivy:latest image \
+                      --severity HIGH,CRITICAL \
+                      --no-progress \
+                      --exit-code 0 \
+                      devops-app:${IMAGE_TAG}
+                '''
             }
         }
 
