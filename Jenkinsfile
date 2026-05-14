@@ -84,7 +84,7 @@ pipeline {
 
         stage('Ensure ECR Repo Exists') {
             steps {
-                sh 'terraform apply -input=false -auto-approve -target=aws_ecr_repository.app'
+                sh 'terraform apply -input=false -auto-approve -target=module.ecr.aws_ecr_repository.app'
             }
         }
 

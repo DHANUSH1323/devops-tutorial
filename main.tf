@@ -1,58 +1,5 @@
 provider "aws" {
-  region = "us-east-2"
-}
-
-locals {
-  ecr_registry = "${aws_ecr_repository.app.registry_id}.dkr.ecr.${var.region}.amazonaws.com"
-  image_full   = "${aws_ecr_repository.app.repository_url}:${var.image_tag}"
-}
-
-data "aws_ami" "ubuntu" {
-  most_recent = true
-
-  filter {
-    name   = "name"
-    values = ["ubuntu/images/hvm-ssd-gp3/ubuntu-noble-24.04-amd64-server-*"]
-  }
-
-  owners = ["099720109477"]
-}
-
-resource "aws_instance" "app_server" {
-  ami                         = data.aws_ami.ubuntu.id
-  instance_type               = var.instance_type
-  iam_instance_profile        = aws_iam_instance_profile.ec2_app.name
-  vpc_security_group_ids      = [aws_security_group.app.id]
-  user_data_replace_on_change = true
-
-  user_data = <<-EOF
-    #!/bin/bash
-    set -e
-    apt-get update -y
-    DEBIAN_FRONTEND=noninteractive apt-get install -y docker.io curl unzip
-    systemctl start docker
-    systemctl enable docker
-
-    curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o /tmp/awscliv2.zip
-    unzip -q /tmp/awscliv2.zip -d /tmp
-    /tmp/aws/install
-    rm -rf /tmp/aws /tmp/awscliv2.zip
-
-    aws ecr get-login-password --region ${var.region} \
-      | docker login --username AWS --password-stdin ${local.ecr_registry}
-
-    docker pull ${local.image_full}
-    docker run -d --restart=always --name app \
-      --log-driver=awslogs \
-      --log-opt awslogs-region=${var.region} \
-      --log-opt awslogs-group=${aws_cloudwatch_log_group.app.name} \
-      --log-opt awslogs-stream=app \
-      -p 8000:8000 ${local.image_full}
-  EOF
-
-  tags = {
-    Name = var.instance_name
-  }
+  region = var.region
 }
 
 module "vpc" {
@@ -67,4 +14,89 @@ module "vpc" {
   public_subnets  = ["10.0.101.0/24"]
 
   enable_dns_hostnames = true
+}
+
+module "ecr" {
+  source = "./modules/ecr"
+}
+
+module "observability" {
+  source = "./modules/observability"
+}
+
+module "compute" {
+  source = "./modules/compute"
+
+  region             = var.region
+  image_tag          = var.image_tag
+  ecr_registry_id    = module.ecr.registry_id
+  ecr_repository_url = module.ecr.repository_url
+  log_group_name     = module.observability.log_group_name
+}
+
+# State-move blocks — tell Terraform these resources were relocated, not destroyed/recreated.
+
+moved {
+  from = aws_ecr_repository.app
+  to   = module.ecr.aws_ecr_repository.app
+}
+
+moved {
+  from = aws_cloudwatch_log_group.app
+  to   = module.observability.aws_cloudwatch_log_group.app
+}
+
+moved {
+  from = aws_sns_topic.alerts
+  to   = module.observability.aws_sns_topic.alerts
+}
+
+moved {
+  from = aws_sns_topic_subscription.email
+  to   = module.observability.aws_sns_topic_subscription.email
+}
+
+moved {
+  from = aws_iam_role.ec2_app
+  to   = module.compute.aws_iam_role.ec2_app
+}
+
+moved {
+  from = aws_iam_role_policy_attachment.ecr_read
+  to   = module.compute.aws_iam_role_policy_attachment.ecr_read
+}
+
+moved {
+  from = aws_iam_role_policy_attachment.cw_agent
+  to   = module.compute.aws_iam_role_policy_attachment.cw_agent
+}
+
+moved {
+  from = aws_iam_instance_profile.ec2_app
+  to   = module.compute.aws_iam_instance_profile.ec2_app
+}
+
+moved {
+  from = aws_security_group.app
+  to   = module.compute.aws_security_group.app
+}
+
+moved {
+  from = aws_security_group_rule.app_ingress
+  to   = module.compute.aws_security_group_rule.app_ingress
+}
+
+moved {
+  from = aws_security_group_rule.app_egress
+  to   = module.compute.aws_security_group_rule.app_egress
+}
+
+moved {
+  from = aws_instance.app_server
+  to   = module.compute.aws_instance.app_server
+}
+
+moved {
+  from = data.aws_ami.ubuntu
+  to   = module.compute.data.aws_ami.ubuntu
 }
