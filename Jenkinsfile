@@ -74,19 +74,25 @@ pipeline {
 
         stage('Terraform Init') {
             steps {
-                sh 'terraform init -input=false -reconfigure'
+                dir('envs/dev') {
+                    sh 'terragrunt init -input=false -reconfigure'
+                }
             }
         }
 
         stage('Terraform Validate') {
             steps {
-                sh 'terraform validate'
+                dir('envs/dev') {
+                    sh 'terragrunt validate'
+                }
             }
         }
 
         stage('Ensure ECR Repo Exists') {
             steps {
-                sh 'terraform apply -input=false -auto-approve -target=module.ecr.aws_ecr_repository.app'
+                dir('envs/dev') {
+                    sh 'terragrunt apply -input=false -auto-approve -target=module.ecr.aws_ecr_repository.app'
+                }
             }
         }
 
@@ -136,7 +142,9 @@ pipeline {
 
         stage('Terraform Plan') {
             steps {
-                sh "terraform plan -var image_tag=${IMAGE_TAG} -out=tfplan -input=false"
+                dir('envs/dev') {
+                    sh "terragrunt plan -var image_tag=${IMAGE_TAG} -out=tfplan -input=false"
+                }
             }
         }
 
@@ -148,7 +156,9 @@ pipeline {
 
         stage('Terraform Apply') {
             steps {
-                sh 'terraform apply -input=false -auto-approve tfplan'
+                dir('envs/dev') {
+                    sh 'terragrunt apply -input=false -auto-approve tfplan'
+                }
             }
         }
     }
