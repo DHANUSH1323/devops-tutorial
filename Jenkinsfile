@@ -20,7 +20,7 @@ pipeline {
                           --volumes-from jenkins \
                           -w "$PWD" \
                           python:3.12-slim \
-                          bash -lc "pip install --quiet --index-url http://nexus:8081/repository/pypi-proxy/simple/ ruff==0.6.9 && ruff check ."
+                          bash -lc "pip install --quiet --index-url http://nexus:8081/repository/pypi-proxy/simple/ --trusted-host nexus ruff==0.6.9 && ruff check ."
                     '''
                 }
             }
@@ -35,7 +35,7 @@ pipeline {
                           --volumes-from jenkins \
                           -w "$PWD" \
                           python:3.12-slim \
-                          bash -lc "pip install --quiet --index-url http://nexus:8081/repository/pypi-proxy/simple/ -r requirements-dev.txt && pytest --junitxml=test-results.xml --cov=. --cov-report=xml"
+                          bash -lc "pip install --quiet --index-url http://nexus:8081/repository/pypi-proxy/simple/ --trusted-host nexus -r requirements-dev.txt && pytest --junitxml=test-results.xml --cov=. --cov-report=xml"
                     '''
                 }
             }
