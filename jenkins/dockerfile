@@ -25,4 +25,12 @@ RUN apt-get update && apt-get install -y maven \
        > /etc/apt/sources.list.d/docker.list \
     && apt-get update && apt-get install -y docker-ce-cli
 
+# Install Terragrunt (arch-aware: amd64 or arm64)
+ARG TERRAGRUNT_VERSION=v1.0.4
+RUN ARCH="$(dpkg --print-architecture)" \
+    && curl -fsSL -o /usr/local/bin/terragrunt \
+       "https://github.com/gruntwork-io/terragrunt/releases/download/${TERRAGRUNT_VERSION}/terragrunt_linux_${ARCH}" \
+    && chmod +x /usr/local/bin/terragrunt \
+    && terragrunt --version
+
 USER jenkins
