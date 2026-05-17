@@ -1,0 +1,20 @@
+services:
+  nexus:
+    image: sonatype/nexus3:latest
+    container_name: nexus
+    ports:
+      - "8081:8081"
+      - "8082:8082"
+    environment:
+      INSTALL4J_ADD_VM_PARAMS: "-Xms512m -Xmx1536m -XX:MaxDirectMemorySize=1536m"
+    volumes:
+      - nexus_data:/nexus-data
+    networks:
+      - devops-net
+
+volumes:
+  nexus_data:
+
+networks:
+  devops-net:
+    external: true
